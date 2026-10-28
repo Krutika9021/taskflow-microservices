@@ -1,0 +1,13 @@
+**/.git
+**/.gitignore
+**/.idea
+**/.vscode
+**/*.iml
+**/target
+**/.env
+**/application-local.yml
+**/*.log
+**/agent-tools
+**/.cursor
+README.md
+.git

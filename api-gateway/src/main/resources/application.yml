@@ -1,0 +1,23 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      server:
+        webflux:
+          routes:
+            - id: auth-service
+              uri: ${AUTH_SERVICE_URI:http://localhost:8081}
+              predicates:
+                - Path=/auth/**
+            - id: task-service
+              uri: ${TASK_SERVICE_URI:http://localhost:8082}
+              predicates:
+                - Path=/tasks/**
+
+jwt:
+  secret: ${JWT_SECRET:local-dev-only-change-me-32bytes-min}
+  expiration-ms: 3600000
