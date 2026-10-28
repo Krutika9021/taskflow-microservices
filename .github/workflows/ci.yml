@@ -1,0 +1,53 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: Unit and slice tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - name: Run tests for all modules
+        run: |
+          chmod +x mvnw
+          ./mvnw -B verify
+
+  compose-smoke:
+    name: Docker Compose smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Create .env from the example file
+        run: cp .env.example .env
+      - name: Build and start the whole system
+        run: docker compose up --build -d
+      - name: Wait for the gateway (up to 4 minutes)
+        run: |
+          for i in $(seq 1 48); do
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://localhost:8080/tasks || true)
+            if [ "$code" = "401" ]; then
+              echo "Gateway is up (HTTP $code without a token)"
+              exit 0
+            fi
+            echo "Waiting for gateway... ($i/48, got HTTP $code)"
+            sleep 5
+          done
+          echo "Gateway did not become ready"
+          exit 1
+      - name: Run the end-to-end smoke test
+        run: bash scripts/smoke-test.sh
+      - name: Show container logs on failure
+        if: failure()
+        run: docker compose logs --tail 100
+      - name: Stop containers
+        if: always()
+        run: docker compose down -v
